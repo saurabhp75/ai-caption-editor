@@ -11,10 +11,15 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
+import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { Slot, SplashScreen } from "expo-router";
 import React, { useEffect } from "react";
 import { useColorScheme } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+
+const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL!, {
+  unsavedChangesWarning: false,
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -43,10 +48,14 @@ export default function RootLayout() {
   const colorscheme = useColorScheme();
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider value={colorscheme === "dark" ? DarkTheme : DefaultTheme}>
-        <InitialLayout />
-      </ThemeProvider>
-    </GestureHandlerRootView>
+    <ConvexProvider client={convex}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ThemeProvider
+          value={colorscheme === "dark" ? DarkTheme : DefaultTheme}
+        >
+          <InitialLayout />
+        </ThemeProvider>
+      </GestureHandlerRootView>
+    </ConvexProvider>
   );
 }
