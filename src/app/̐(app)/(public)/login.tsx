@@ -1,23 +1,28 @@
 import { emailAtom } from "@/store/login";
-import { useSignIn, useSignUp, useSSO } from "@clerk/clerk-expo";
+import { twFullConfig } from "@/utils/twconfig";
+import {
+  isClerkAPIResponseError,
+  useSignIn,
+  useSignUp,
+  useSSO,
+} from "@clerk/clerk-expo";
+import { Ionicons } from "@expo/vector-icons";
 import Feather from "@expo/vector-icons/Feather";
+import Checkbox from "expo-checkbox";
 import { Link, useRouter } from "expo-router";
 import { useSetAtom } from "jotai";
 import React, { useState } from "react";
 import {
-  Text,
-  View,
-  Pressable,
   ActivityIndicator,
-  TextInput,
-  TouchableOpacity,
+  Alert,
   Image,
   Linking,
-  Alert,
+  Pressable,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import Checkbox from "expo-checkbox";
-import { Ionicons } from "@expo/vector-icons";
-import { twFullConfig } from "@/utils/twconfig";
 
 const Page = () => {
   const [loading, setLoading] = useState<"google" | "apple" | "email" | false>(
@@ -55,9 +60,69 @@ const Page = () => {
     }
   };
 
-  const handleEmailSignIn = async () => {};
+  const handleEmailSignIn = async () => {
+    if (!isTermsChecked) {
+      console.log("Please agree to the terms.");
+      return;
+    }
+    try {
+      setEmailAtom(email);
 
-  const handleSignInWithEmail = async () => {};
+      await signUp?.create({
+        emailAddress: email,
+      });
+      await signUp!.prepareEmailAddressVerification({
+        strategy: "email_code",
+      });
+      router.push("/verify");
+    } catch (error) {
+      if (isClerkAPIResponseError(error)) {
+        if (error.status === 422) {
+          handleSignInWithEmail();
+        } else {
+          Alert.alert("Error", "Something went wrong");
+        }
+      }
+    }
+  };
+
+  const handleSignInWithEmail = async () => {
+    try {
+      const signInAttempt = await signIn?.create({
+        strategy: "email_code",
+        identifier: email,
+      });
+      console.log("signInAttempt", JSON.stringify(signInAttempt, null, 2));
+      router.push("/verify?isLogin=true");
+      // await signIn?.prepareFirstFactor({ strategy: 'email_code' });
+    } catch (error) {
+      console.error("Error:", JSON.stringify(error, null, 2));
+    }
+  };
+
+  const signInWithPasskey = async () => {
+    // 'discoverable' lets the user choose a passkey
+    // without auto-filling any of the options
+    try {
+      const signInAttempt = await signIn?.authenticateWithPasskey({
+        flow: "discoverable",
+      });
+
+      if (signInAttempt?.status === "complete") {
+        if (setActive !== undefined) {
+          await setActive({ session: signInAttempt.createdSessionId });
+        }
+      } else {
+        // If the status is not complete, check why. User may need to
+        // complete further steps.
+        console.error(JSON.stringify(signInAttempt, null, 2));
+      }
+    } catch (err) {
+      // See https://clerk.com/docs/custom-flows/error-handling
+      // for more info on error handling
+      console.error("Error:", JSON.stringify(err, null, 2));
+    }
+  };
 
   const handleLinkPress = (linkType: "terms" | "privacy") => {
     console.log(`Link pressed: ${linkType}`);
@@ -209,4 +274,3 @@ const Page = () => {
 };
 
 export default Page;
-
