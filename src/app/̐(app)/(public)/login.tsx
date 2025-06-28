@@ -60,6 +60,7 @@ const Page = () => {
     }
   };
 
+  // handleEmailOTP in YT video
   const handleEmailSignIn = async () => {
     if (!isTermsChecked) {
       console.log("Please agree to the terms.");
@@ -77,6 +78,7 @@ const Page = () => {
       router.push("/verify");
     } catch (error) {
       if (isClerkAPIResponseError(error)) {
+        // Email address already exists
         if (error.status === 422) {
           handleSignInWithEmail();
         } else {
